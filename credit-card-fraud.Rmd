@@ -1,0 +1,85 @@
+---
+title: "Credit Card Fraud NN"
+output: html_notebook
+---
+
+***NOTE: creditcard.csv file too large to store on gitub. Link to file download is here: https://drive.google.com/file/d/1PGXzrbvw0n-fNGYPfgYDxsOmCrLErcIK/view?usp=sharing ***
+
+Purpose of this R notebook is to detect credit card fraud via supervised learning ANN algo.
+
+```{r}
+library(MASS)
+```
+
+Load Keras
+
+```{r}
+install.packages("devtools")
+devtools::install_github("rstudio/keras") # update all if prompted
+library(keras)
+install_keras() # install Miniconda if prompted
+```
+
+Import credit card CSV. 
+
+```{r}
+card_data <- read.csv("creditcard.csv")
+```
+
+```{r}
+head(card_data)
+names(card_data)
+```
+
+Scale data to deal with outliers.
+
+```{r}
+card_data$Amount=scale(card_data$Amount)
+scaled_card_data = card_data[,-c(1)]
+head(scaled_card_data)
+```
+
+Split data into training & test (80/20)
+
+```{r}
+set.seed(2020)
+sample_ind <- sample(1:nrow(scaled_card_data), size=round(0.8*nrow(scaled_card_data)), replace=FALSE)
+train_card_x = as.matrix(scaled_card_data[sample_ind,-30])
+test_card_x = as.matrix(scaled_card_data[-sample_ind,-30])
+train_card_y  = model.matrix(~Class-1, data=scaled_card_data[sample_ind,])
+test_card_y = model.matrix(~Class-1, data=scaled_card_data[-sample_ind,])
+head(train_card_x)
+head(train_card_y)
+```
+
+Check dimensions
+```{r}
+dim(train_card_x)
+dim(test_card_x)
+```
+
+Train FNN with one hidden layer wit relu activation, and a softmax output rule.
+
+```{r}
+hidden_layer <- layer_dense(units = 50, activation = "relu", input_shape = dim(train_card_x)[2])
+hidden_layer_2 <- layer_dense(units = 25, activation = "relu", input_shape = 50)
+output_layer <- layer_dense(units = 2, activation = "softmax")
+model <- keras_model_sequential(list(hidden_layer, hidden_layer_2, output_layer))
+summary(model)
+```
+
+Now, we specify model by setting loss function to negative log-lik, train the model using mini-batch SGD and evaluate model to get predictions (after running several times, found almost all data to be captured in 4 epochs).
+
+```{r}
+compile(model, optimizer="sgd", loss="sparse_categorical_crossentropy", metrics="acc")
+fit(model, train_card_x, train_card_y, epochs=4, batch_size=10)
+evaluate(model, test_card_x, test_card_y)
+```
+
+
+
+
+
+
+
+
